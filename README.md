@@ -56,11 +56,11 @@ The objective of the Movie Ticket Reservation System is to develop a full-stack 
 ## 🚀 Tech Stack:
 
 ### Frontend: React.js
-### Backend: Node.js with Express.js or Django (alternative backend option)
-### Database: MySQL, PostgreSQL, or MongoDB
+### Backend: Node.js with Express.js
+### Database:MongoDB
 ### Authentication: JWT (JSON Web Tokens) for secure user authentication.
 ### Payment Integration: Stripe, PayPal
-### Charts & Reports: Use Chart.js or Recharts for visualizing ticket sales and user activity.
+
 
 ## 🎬 Enjoy your hassle-free movie booking experience! 🍿
 
