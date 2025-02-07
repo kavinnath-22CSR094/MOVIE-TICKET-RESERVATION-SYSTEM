@@ -1,4 +1,4 @@
-## 5️⃣ Settings/Profile Page
+## 8️⃣ Settings/Profile Page
 
 **🔹 Purpose:**
 

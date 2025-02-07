@@ -1,4 +1,4 @@
-## 8️⃣ Logout
+## 9️⃣ Logout
 
 **🔹 Purpose:**
 
