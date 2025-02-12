@@ -72,7 +72,6 @@ app.post("/register", async (req, res) => {
     }
 });
 
-
 // **2. Verify OTP & Login**
 app.post("/verify-otp", async (req, res) => {
     const { email, otp } = req.body;
@@ -120,7 +119,21 @@ app.post("/login", async (req, res) => {
     }
 });
 
-// **4. Protected Route**
+// **4. Fetch User Data**
+app.get('/user', async (req, res) => {
+    const token = req.headers['authorization'].split(' ')[1];
+    if (!token) return res.status(401).json({ message: "Unauthorized!" });
+
+    try {
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        const user = await User.findById(decoded.id).select("-password");
+        res.json({ username: user.username });
+    } catch (err) {
+        res.status(401).json({ message: "Invalid token!" });
+    }
+});
+
+// **5. Protected Route**
 app.get("/profile", async (req, res) => {
     const token = req.headers.authorization;
 
