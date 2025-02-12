@@ -78,16 +78,19 @@ const Register = () => {
 
     const handleVerifyOTP = async () => {
         try {
-            await axios.post("http://localhost:5000/api/auth/verify-otp", {
+            const response = await axios.post("http://localhost:5000/api/auth/verify-otp", {
+                username: formData.username,  // Include username in the request
                 email: formData.email,
+                password: formData.password,  // Include password in the request
                 otp,
             });
-            alert("OTP verified! Redirecting to login...");
+            alert(response.data.message); // Show success message from server
             navigate("/login");
         } catch (error) {
-            alert("Invalid or expired OTP!");
+            alert(error.response?.data?.message || "Something went wrong!");
         }
     };
+    
 
     return (
         <Container>
@@ -123,11 +126,12 @@ const Register = () => {
                     <>
                         <h2>Enter OTP</h2>
                         <Input
-                            type="text"
-                            placeholder="OTP"
-                            value={otp}
-                            onChange={(e) => setOtp(e.target.value)}
-                        />
+                        type="number"
+                        placeholder="OTP"
+                        value={otp}
+                        onChange={(e) => setOtp(e.target.value)}
+                    />
+
                         <Button onClick={handleVerifyOTP}>Verify OTP</Button>
                     </>
                 )}

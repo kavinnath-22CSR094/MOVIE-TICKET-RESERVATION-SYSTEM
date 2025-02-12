@@ -1,24 +1,32 @@
-// backend/server.js
-
 require("dotenv").config();
 const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
+const nodemailer = require("nodemailer");
 
 const app = express();
 app.use(cors());
 app.use(express.json());
 
-// MongoDB Connection
+// ✅ Connect to MongoDB
 mongoose.connect(process.env.MONGO_URI, {
     useNewUrlParser: true,
     useUnifiedTopology: true,
 }).then(() => console.log("✅ MongoDB Connected"))
   .catch(err => console.log("❌ MongoDB Connection Error:", err));
 
-// User Schema
+// ✅ Setup Email Transporter (Gmail Example)
+const transporter = nodemailer.createTransport({
+    service: "gmail",
+    auth: {
+        user: process.env.EMAIL,
+        pass: process.env.EMAIL_PASSWORD,
+    },
+});
+
+// ✅ User Schema
 const UserSchema = new mongoose.Schema({
     username: { type: String, unique: true, required: true },
     email: { type: String, unique: true, required: true },
@@ -27,43 +35,10 @@ const UserSchema = new mongoose.Schema({
 });
 const User = mongoose.model("User", UserSchema);
 
-// Movie Schema
-const MovieSchema = new mongoose.Schema({
-    name: { type: String, required: true },
-    imageUrl: { type: String, required: true },
-    genres: { type: [String], required: true },
-    status: { type: String, enum: ["upcoming", "now playing"], required: true },
-});
-const Movie = mongoose.model("Movie", MovieSchema);
+// ✅ OTP Storage (Consider Redis for Production)
+const otpStorage = new Map();
 
-app.get("/api/auth/user", async (req, res) => {
-    const token = req.headers.authorization?.split(" ")[1];
-    if (!token) return res.status(401).json({ message: "Unauthorized!" });
-
-    try {
-        const decoded = jwt.verify(token, process.env.JWT_SECRET);
-        const user = await User.findById(decoded.id).select("-password");
-        res.json({ username: user.username });
-    } catch (error) {
-        res.status(401).json({ message: "Invalid token!" });
-    }
-});
-
-// Middleware to check if user is an admin
-const isAdmin = (req, res, next) => {
-    const token = req.headers.authorization?.split(" ")[1];
-    if (!token) return res.status(401).json({ message: "Unauthorized!" });
-
-    try {
-        const decoded = jwt.verify(token, process.env.JWT_SECRET);
-        if (decoded.role !== "admin") return res.status(403).json({ message: "Forbidden!" });
-        next();
-    } catch (error) {
-        res.status(401).json({ message: "Invalid token!" });
-    }
-};
-
-// Register User
+// ✅ Function to Send OTP Email
 const sendOTPEmail = async (email, otp) => {
     const mailOptions = {
         from: process.env.EMAIL,
@@ -74,17 +49,79 @@ const sendOTPEmail = async (email, otp) => {
 
     try {
         await transporter.sendMail(mailOptions);
-        console.log("OTP email sent successfully!");
+        console.log("✅ OTP email sent successfully!");
     } catch (error) {
-        console.error("Error sending OTP email:", error);
+        console.error("❌ Error sending OTP email:", error);
         throw new Error("Error sending OTP email");
     }
 };
+
+// ✅ Register User - Step 1: Generate and Send OTP
 app.post("/api/auth/register", async (req, res) => {
     const { username, email, password } = req.body;
+
+    try {
+        const existingUser = await User.findOne({ email });
+        if (existingUser) return res.status(400).json({ message: "User already exists!" });
+
+        const otp = Math.floor(100000 + Math.random() * 900000); // Generate a 6-digit OTP
+        otpStorage.set(email, { otp, expires: Date.now() + 300000 }); // Store OTP for 5 minutes
+
+        await sendOTPEmail(email, otp); // Send OTP to user's email
+
+        res.json({ message: "OTP sent successfully! Please verify your email." });
+    } catch (error) {
+        res.status(500).json({ message: "Error sending OTP!" });
+    }
+});
+
+// ✅ Verify OTP and Register User
+// Verify OTP and Register User
+app.post("/api/auth/verify-otp", async (req, res) => {
+    const { username, email, password, otp } = req.body;
+
+    if (!username || !email || !password || !otp) {
+        return res.status(400).json({ message: "All fields are required!" });
+    }
+
+    const storedData = otpStorage.get(email);
+    console.log("Stored OTP:", storedData);
+    console.log("Received OTP:", otp);
+    console.log("Received OTP:", otp);
+console.log("Stored OTP:", storedData?.otp);
+console.log("Stored Expiry:", new Date(storedData?.expires));
+console.log("Current Time:", new Date());
+
+
+    if (!storedData) {
+        return res.status(400).json({ message: "OTP expired or not found!" });
+    }
+
+    // Check if OTP is expired
+    if (Date.now() > storedData.expires) {
+        otpStorage.delete(email); // Remove expired OTP
+        return res.status(400).json({ message: "OTP has expired!" });
+    }
+    if (!storedData) {
+        return res.status(400).json({ message: "Invalid or expired OTP" }); // Unified message
+    }
+    
+    if (Date.now() > storedData.expires) {
+        otpStorage.delete(email);
+        return res.status(400).json({ message: "Invalid or expired " }); // Unified message
+    }
+    
+    // Ensure OTP types match
+    if (storedData.otp !== Number(otp)) {
+        return res.status(400).json({ message: "Invalid OTP!" });
+    }
+
+    otpStorage.delete(email); // Remove OTP after successful verification
+
     try {
         const hashedPassword = await bcrypt.hash(password, 10);
         const newUser = new User({ username, email, password: hashedPassword });
+
         await newUser.save();
         res.json({ message: "User registered successfully!" });
     } catch (error) {
@@ -92,7 +129,7 @@ app.post("/api/auth/register", async (req, res) => {
     }
 });
 
-// Login User
+// ✅ Login User
 app.post("/api/auth/login", async (req, res) => {
     const { username, password } = req.body;
     try {
@@ -109,7 +146,21 @@ app.post("/api/auth/login", async (req, res) => {
     }
 });
 
-// Admin Login
+// ✅ Middleware to Check if User is Admin
+const isAdmin = (req, res, next) => {
+    const token = req.headers.authorization?.split(" ")[1];
+    if (!token) return res.status(401).json({ message: "Unauthorized!" });
+
+    try {
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        if (decoded.role !== "admin") return res.status(403).json({ message: "Forbidden!" });
+        next();
+    } catch (error) {
+        res.status(401).json({ message: "Invalid token!" });
+    }
+};
+
+// ✅ Admin Login
 app.post("/api/auth/admin/login", async (req, res) => {
     const { username, password } = req.body;
     try {
@@ -126,7 +177,16 @@ app.post("/api/auth/admin/login", async (req, res) => {
     }
 });
 
-// Add Movie (Admin Only)
+// ✅ Movie Schema
+const MovieSchema = new mongoose.Schema({
+    name: { type: String, required: true },
+    imageUrl: { type: String, required: true },
+    genres: { type: [String], required: true },
+    status: { type: String, enum: ["upcoming", "now playing"], required: true },
+});
+const Movie = mongoose.model("Movie", MovieSchema);
+
+// ✅ Add Movie (Admin Only)
 app.post("/api/movies", isAdmin, async (req, res) => {
     const { name, imageUrl, genres, status } = req.body;
     try {
@@ -138,17 +198,39 @@ app.post("/api/movies", isAdmin, async (req, res) => {
     }
 });
 
-// Get Movies
+app.get("/api/auth/user", async (req, res) => {
+    const token = req.headers.authorization?.split(" ")[1];
+  
+    if (!token) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+  
+    try {
+      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+      const user = await User.findById(decoded.id).select("-password"); // Get user without password
+  
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+  
+      res.json({ username: user.username });
+    } catch (error) {
+      res.status(400).json({ error: "Invalid token" });
+    }
+  });
+  
+
+// ✅ Get Movies
 app.get("/api/movies", async (req, res) => {
     const { status } = req.query;
     try {
-        const movies = await Movie.find({ status });
+        const movies = await Movie.find(status ? { status } : {});
         res.json(movies);
     } catch (error) {
         res.status(500).json({ message: "Error fetching movies!" });
     }
 });
 
-// Start Server
+// ✅ Start Server
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
