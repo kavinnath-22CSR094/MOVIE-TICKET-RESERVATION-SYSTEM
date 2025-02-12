@@ -1,6 +1,6 @@
 import styled from "styled-components";
 
-export const Container = styled.div`
+const Container = styled.div`
   display: flex;
   justify-content: center;
   align-items: center;
@@ -8,7 +8,7 @@ export const Container = styled.div`
   background: #1a1a2e;
 `;
 
-export const Card = styled.div`
+const Card = styled.div`
   background: #fff;
   padding: 2rem;
   border-radius: 10px;
@@ -17,7 +17,7 @@ export const Card = styled.div`
   width: 350px;
 `;
 
-export const Avatar = styled.div`
+const Avatar = styled.div`
   width: 80px;
   height: 80px;
   background: #ccc;
@@ -29,7 +29,7 @@ export const Avatar = styled.div`
   font-size: 2rem;
 `;
 
-export const Input = styled.input`
+const Input = styled.input`
   width: 100%;
   padding: 10px;
   margin: 10px 0;
@@ -38,7 +38,7 @@ export const Input = styled.input`
   font-size: 16px;
 `;
 
-export const Button = styled.button`
+const Button = styled.button`
   width: 100%;
   padding: 10px;
   margin-top: 10px;

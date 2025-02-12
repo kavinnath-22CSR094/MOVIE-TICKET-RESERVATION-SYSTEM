@@ -67,11 +67,18 @@ const Login = () => {
     const handleSubmit = async () => {
         try {
             const response = await axios.post("http://localhost:5000/api/auth/login", formData);
+          
             localStorage.setItem("token", response.data.token);
-            alert("Login successful!");
-            navigate("/dashboard");
+
+            alert("Login successful! Redirecting...");
+
+            // Delay navigation for debugging
+            
+                navigate("/dashboard");
+            
         } catch (error) {
-            alert("Invalid username or password!");
+            console.error("Login error:", error.response?.data || error);
+            alert(error.response?.data?.message || "Invalid username or password!");
         }
     };
 
