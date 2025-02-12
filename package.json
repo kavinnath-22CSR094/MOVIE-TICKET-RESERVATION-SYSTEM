@@ -1,0 +1,31 @@
+{
+  "name": "movie-ticket-reservation-system",
+  "version": "1.0.0",
+  "description": "The **Movie Ticket Reservation System** is a web-based application that allows users to browse movies, select showtimes, book tickets, and make payments online. The system provides an intuitive interface for users while ensuring smooth management of reservations and transactions. Users can view available movies, select their preferred seats, and complete secure transactions seamlessly. The application also offers an admin panel to manage movies, showtimes, and bookings efficiently.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kavinnath-22CSR094/MOVIE-TICKET-RESERVATION-SYSTEM.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/kavinnath-22CSR094/MOVIE-TICKET-RESERVATION-SYSTEM/issues"
+  },
+  "homepage": "https://github.com/kavinnath-22CSR094/MOVIE-TICKET-RESERVATION-SYSTEM#readme",
+  "dependencies": {
+    "body-parser": "^1.20.3",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "mongoose": "^8.10.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-scripts": "^5.0.1",
+    "twilio": "^5.4.3"
+  }
+}
