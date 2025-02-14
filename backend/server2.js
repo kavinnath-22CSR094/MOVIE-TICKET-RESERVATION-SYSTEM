@@ -233,116 +233,52 @@ app.get("/api/movies", async (req, res) => {
         res.status(500).json({ message: "Error fetching movies!" });
     }
 });
-const ticketSchema = new mongoose.Schema({
-    movieId: { type: mongoose.Schema.Types.ObjectId, ref: "Movie", required: true },
-    userId: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
-    seats: [{
-        row: { type: String, required: true },
-        number: { type: Number, required: true }
-    }],
-    bookingDate: { type: Date, default: Date.now }
-});
-const Ticket = mongoose.model("Ticket", ticketSchema);
 
 
-// ✅ Book Ticket Route (Fixes `userId` and `movieId` Error)
+const Ticket = require("./models/Ticket1");
 
-app.post("/api/book-ticket", async (req, res) => {
+app.post("/api/tickets/book", async (req, res) => {
+    const { user, movie, seats, date, time, totalAmount } = req.body;
+
+    if (!user || !movie || !seats || !date || !time || !totalAmount) {
+        console.error("❌ Missing fields in request:", req.body);
+        return res.status(400).json({ message: "All fields are required!", received: req.body });
+    }
+
     try {
-        console.log("Incoming Booking Request:", req.body); // Debugging log
+        const userId = new mongoose.Types.ObjectId(user);
+        const movieId = new mongoose.Types.ObjectId(movie);
 
-        let { userId, movieId, seats } = req.body;
+        console.log("Saving ticket:", { userId, movieId, seats, date, time, totalAmount });
 
-        // ✅ Validate userId and movieId
-        if (!mongoose.Types.ObjectId.isValid(userId) || !mongoose.Types.ObjectId.isValid(movieId)) {
-            return res.status(400).json({ message: "Invalid User ID or Movie ID!" });
-        }
-        userId = new mongoose.Types.ObjectId(userId);
-        movieId = new mongoose.Types.ObjectId(movieId);
-
-        // ✅ Fetch latest movie data
-        const movieData = await Movie.findById(movieId);
-        if (!movieData) return res.status(404).json({ message: "Movie not found!" });
-
-        // ✅ Check seat availability
-        let unavailableSeats = [];
-        seats.forEach((seat) => {
-            const seatExists = movieData.availableSeats.find(
-                (s) => s.row === seat.row && s.seatNumber === seat.number
-            );
-
-            if (!seatExists) {
-                unavailableSeats.push(`${seat.row}${seat.number}`);
-            } else if (seatExists.booked === true) {
-                unavailableSeats.push(`${seat.row}${seat.number}`);
-            }
-        });
-
-        if (unavailableSeats.length > 0) {
-            console.error(`❌ These seats are already booked: ${unavailableSeats.join(", ")}`);
-            return res.status(400).json({ message: `Seats already booked: ${unavailableSeats.join(", ")}` });
-        }
-
-        // ✅ Update only booked seats in MongoDB
-        for (let seat of seats) {
-            await Movie.updateOne(
-                { _id: movieId },
-                { 
-                  $set: { "availableSeats.$[elem].booked": true } 
-                },
-                { 
-                  arrayFilters: [{ "elem.row": { $in: seats.map(s => s.row) }, "elem.seatNumber": { $in: seats.map(s => s.number) }, "elem.booked": false }]
-                }
-              );
-              
-              
-            
-        }
-        
-        // ✅ Save ticket in the database
         const newTicket = new Ticket({
-            userId,
-            movieId,
+            user: userId,
+            movie: movieId,
             seats,
-            bookingDate: new Date(),
+            date,
+            time,
+            totalAmount,
         });
 
         await newTicket.save();
-        console.log("✅ Ticket saved successfully:", newTicket);
-
-        res.status(201).json({ success: true, message: "Ticket booked successfully!", ticket: newTicket });
+        res.json({ message: "Ticket booked successfully!", ticket: newTicket });
     } catch (error) {
         console.error("❌ Error booking ticket:", error);
-        res.status(500).json({ message: "Server error! Booking failed." });
+        res.status(500).json({ message: "Error booking ticket!", error: error.message });
     }
 });
 
 
 
-// ✅ Get All Tickets Route
-app.get("/api/tickets", async (req, res) => {
+// ✅ Get User's Tickets
+app.get("/api/tickets/user/:userId", async (req, res) => {
     try {
-        const tickets = await Ticket.find().populate("movieId").populate("userId");
+        const tickets = await Ticket.find({ user: req.params.userId }).populate("movie");
         res.json(tickets);
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        res.status(500).json({ message: "Error fetching tickets!" });
     }
 });
-
-// ✅ Get Booked Seats for a Movie
-app.get("/api/movies/:id/booked-seats", async (req, res) => {
-    try {
-        const movie = await Movie.findById(req.params.id);
-        if (!movie) return res.status(404).json({ message: "Movie not found" });
-
-        const bookedSeats = movie.availableSeats.filter((s) => s.booked);
-        res.json(bookedSeats);
-    } catch (error) {
-        console.error("Error fetching booked seats:", error);
-        res.status(500).json({ message: "Server error" });
-    }
-});
-
 // ✅ Start Server
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));

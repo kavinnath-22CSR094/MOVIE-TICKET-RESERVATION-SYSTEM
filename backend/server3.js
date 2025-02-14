@@ -287,15 +287,9 @@ app.post("/api/book-ticket", async (req, res) => {
         for (let seat of seats) {
             await Movie.updateOne(
                 { _id: movieId },
-                { 
-                  $set: { "availableSeats.$[elem].booked": true } 
-                },
-                { 
-                  arrayFilters: [{ "elem.row": { $in: seats.map(s => s.row) }, "elem.seatNumber": { $in: seats.map(s => s.number) }, "elem.booked": false }]
-                }
-              );
-              
-              
+                { $set: { "availableSeats.$[elem].booked": true } },
+                { arrayFilters: [{ "elem.row": { $in: seats.map(s => s.row) }, "elem.seatNumber": { $in: seats.map(s => s.number) } }] }
+            );
             
         }
         

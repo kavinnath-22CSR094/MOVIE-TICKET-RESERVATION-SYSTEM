@@ -5,6 +5,7 @@ import Login from "./components/Login";
 import AdminLogin from "./components/AdminLogin";
 import Dashboard from "./components/Dashboard";
 import AdminPanel from "./components/AdminPanel";
+import MovieBooking from "./components/MovieBooking";   
 
 function App() {
     return (
@@ -15,6 +16,7 @@ function App() {
                 <Route path="/admin/login" element={<AdminLogin />} />
                 <Route path="/dashboard" element={<Dashboard />} />
                 <Route path="/admin" element={<AdminPanel />} />
+                <Route path="/moviebooking" element={<MovieBooking />} />
             </Routes>
         </Router>
     );

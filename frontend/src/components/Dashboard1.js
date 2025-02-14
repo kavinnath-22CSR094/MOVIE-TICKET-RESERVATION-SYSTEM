@@ -10,7 +10,7 @@ import "slick-carousel/slick/slick-theme.css";
 const DashboardContainer = styled.div`
   display: flex;
   flex-direction: column;
-  height: 100vh;
+  height: 175vh;
   background: #f4f4f4;
 `;
 
@@ -41,6 +41,90 @@ const NavItem = styled.div`
   }
 `;
 
+const CarouselContainer = styled.div`
+  width: 100vw;
+  height: 400px;
+`;
+
+const MovieCard = styled.div`
+  width: 100vw;
+  position: relative;
+`;
+
+const MovieImage = styled.img`
+  width: 100vw;
+  height: 400px;
+`;
+
+const MovieOverlay = styled.div`
+  position: absolute;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  text-align: center;
+`;
+
+const MovieName = styled.div`
+  font-size: 1.5rem;
+  color: white;
+  background: rgba(0, 0, 0, 0.6);
+  padding: 10px 20px;
+  border-radius: 5px;
+  margin-bottom: 10px;
+`;
+
+const BookButton = styled.button`
+  padding: 10px 20px;
+  background: #007bff;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  &:hover {
+    background: #0056b3;
+  }
+`;
+
+const MovieCard1 = styled.div`
+  background: #fff;
+  padding: 1rem;
+  border-radius: 10px;
+  box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
+  text-align: center;
+  margin: 0 10px;
+`;
+
+const MovieImage1 = styled.img`
+  width: 100%;
+  height: 100px;
+  border-radius: 10px;
+`;
+
+const MovieName1 = styled.div`
+  font-size: 1.2rem;
+  margin: 0.5rem 0;
+`;
+
+const BookButton1 = styled.button`
+  width: 100%;
+  padding: 10px;
+  background: #007bff;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  &:hover {
+    background: #0056b3;
+  }
+`;
+
+const MovieGrid1 = styled.div`
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 1rem;
+  margin-bottom: 2rem;
+`;
+
 const Content = styled.div`
   display: flex;
   flex: 1;
@@ -67,175 +151,133 @@ const SearchBar = styled.input`
   border-radius: 5px;
 `;
 
-const CarouselContainer = styled.div`
- margin: 2rem 0;
-  max-width: 800px;
-  margin-left: auto;
-  margin-right: auto;
-`;
-
-const MovieCard = styled.div`
-  background: #fff;
-  padding: 1rem;
-  border-radius: 10px;
-  box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
-  text-align: center;
-   margin: 0 10px;
-`;
-
-const MovieImage = styled.img`
-  width: 100%;
-  border-radius: 10px;
-`;
-
-const MovieName = styled.div`
-  font-size: 1.2rem;
-  margin: 0.5rem 0;
-`;
-
-const BookButton = styled.button`
-  width: 100%;
-  padding: 10px;
-  background: #007bff;
-  color: white;
-  border: none;
-  border-radius: 5px;
-  cursor: pointer;
-  &:hover {
-    background: #0056b3;
-  }
-`;
-
-const MovieGrid = styled.div`
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-  gap: 1rem;
-  margin-bottom: 2rem;
-`;
-
 const Dashboard = () => {
-    const [upcomingMovies, setUpcomingMovies] = useState([]);
-    const [nowPlayingMovies, setNowPlayingMovies] = useState([]);
-    const [username, setUsername] = useState("");
-    const navigate = useNavigate();
+  const [upcomingMovies, setUpcomingMovies] = useState([]);
+  const [nowPlayingMovies, setNowPlayingMovies] = useState([]);
+  const [username, setUsername] = useState("");
+  const navigate = useNavigate();
 
-    useEffect(() => {
-        const fetchMovies = async () => {
-            try {
-                const upcomingResponse = await axios.get("http://localhost:5000/api/movies", {
-                    params: { status: "upcoming" },
-                });
-                setUpcomingMovies(upcomingResponse.data);
+  useEffect(() => {
+    const fetchMovies = async () => {
+      try {
+        const upcomingResponse = await axios.get("http://localhost:5000/api/movies", {
+          params: { status: "upcoming" },
+        });
+        setUpcomingMovies(upcomingResponse.data);
 
-                const nowPlayingResponse = await axios.get("http://localhost:5000/api/movies", {
-                    params: { status: "now playing" },
-                });
-                setNowPlayingMovies(nowPlayingResponse.data);
-            } catch (error) {
-                console.error("Error fetching movies:", error);
-            }
-        };
+        const nowPlayingResponse = await axios.get("http://localhost:5000/api/movies", {
+          params: { status: "now playing" },
+        });
+        setNowPlayingMovies(nowPlayingResponse.data);
+      } catch (error) {
+        console.error("Error fetching movies:", error);
+      }
+    };
 
-        const fetchUserData = async () => {
-            const token = localStorage.getItem("token");
-            if (!token) {
-                navigate("/login");
-                return;
-            }
+    const fetchUserData = async () => {
+      const token = localStorage.getItem("token");
+      console.log("Token from localStorage:", token); // Debugging
 
-            try {
-                const response = await axios.get("http://localhost:5000/api/auth/user", {
-                    headers: { Authorization: `Bearer ${token}` },
-                });
-                setUsername(response.data.username);
-            } catch (error) {
-                console.error("Error fetching user data:", error);
-                navigate("/login");
-            }
-        };
-
-        fetchMovies();
-        fetchUserData();
-    }, [navigate]);
-
-    const handleLogout = () => {
-        localStorage.removeItem("token");
+      if (!token) {
+        console.error("No token found. Redirecting to login...");
         navigate("/login");
+        return;
+      }
+
+      try {
+        const response = await axios.get("http://localhost:5000/api/auth/user", {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+
+        console.log("User data received:", response.data); // Debugging
+
+        if (response.data && response.data.username) {
+          setUsername(response.data.username);
+        } else {
+          console.error("Username not found in response:", response.data);
+          setUsername("Guest"); // Fallback
+        }
+      } catch (error) {
+        console.error("Error fetching user data:", error);
+        navigate("/dashboard");
+      }
     };
 
-    const settings = {
-        dots: true,
-        infinite: true,
-        speed: 500,
-        slidesToShow: 3,
-        slidesToScroll: 1,
-        autoplay: true,
-        autoplaySpeed: 3000,
-        centerMode: true,
-        centerPadding: "20px",
-    };
+    fetchMovies();
+    fetchUserData();
+  }, [navigate]);
 
-    return (
-        <DashboardContainer>
-            <Header>
-                <Logo>LOGO</Logo>
-                <Nav>
-                    <NavItem>DASHBOARD</NavItem>
-                    <NavItem>MOVIES</NavItem>
-                    <NavItem onClick={() => alert("Theaters page coming soon!")}>THEATERS</NavItem>
-                    <NavItem onClick={() => alert("Orders page coming soon!")}>ORDERS</NavItem>
-                    <NavItem>{username}</NavItem>
-                    <NavItem onClick={handleLogout}>LOGOUT</NavItem>
-                </Nav>
-            </Header>
-            <h2>UPCOMING MOVIES</h2>
-                    <CarouselContainer>
-                        <Slider {...settings}>
-                            {upcomingMovies.map((movie) => (
-                                <MovieCard key={movie._id}>
-                                    <MovieImage src={movie.imageUrl} alt={movie.name} />
-                                    <MovieName>{movie.name}</MovieName>
-                                    <BookButton>BOOK TICKETS</BookButton>
-                                </MovieCard>
-                            ))}
-                        </Slider>
-                    </CarouselContainer>
-            <Content>
-                <Sidebar>
-                    <h3>GENRES</h3>
-                    <div>Drama</div>
-                    <div>Thriller</div>
-                    <div>Romance</div>
-                    <div>Mystery</div>
-                </Sidebar>
-                <MainContent>
-                    <SearchBar type="text" placeholder="Search movie or theatre" />
-                    <h2>UPCOMING MOVIES</h2>
-                    <CarouselContainer>
-                        <Slider {...settings}>
-                            {upcomingMovies.map((movie) => (
-                                <MovieCard key={movie._id}>
-                                    <MovieImage src={movie.imageUrl} alt={movie.name} />
-                                    <MovieName>{movie.name}</MovieName>
-                                    <BookButton>BOOK TICKETS</BookButton>
-                                </MovieCard>
-                            ))}
-                        </Slider>
-                    </CarouselContainer>
-                    <h2>NOW PLAYING MOVIES</h2>
-                    <MovieGrid>
-                        {nowPlayingMovies.map((movie) => (
-                            <MovieCard key={movie._id}>
-                                <MovieImage src={movie.imageUrl} alt={movie.name} />
-                                <MovieName>{movie.name}</MovieName>
-                                <BookButton>BOOK TICKETS</BookButton>
-                            </MovieCard>
-                        ))}
-                    </MovieGrid>
-                </MainContent>
-            </Content>
-        </DashboardContainer>
-    );
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    navigate("/login");
+  };
+
+  const settings = {
+    dots: true,
+    infinite: true,
+    speed: 500,
+    slidesToShow: 1,
+    slidesToScroll: 1,
+    autoplay: true,
+    autoplaySpeed: 3000,
+    arrows: false,
+  };
+
+  return (
+    <DashboardContainer>
+      <Header>
+        <Logo>LOGO</Logo>
+        <Nav>
+          <NavItem>DASHBOARD</NavItem>
+          <NavItem>MOVIES</NavItem>
+          <NavItem onClick={() => alert("Theaters page coming soon!")}>THEATERS</NavItem>
+          <NavItem onClick={() => alert("Orders page coming soon!")}>ORDERS</NavItem>
+          <NavItem>{username || "Guest"}</NavItem>
+          <NavItem onClick={handleLogout}>LOGOUT</NavItem>
+        </Nav>
+      </Header>
+
+      <h2 style={{ textAlign: "center" }}>UPCOMING MOVIES</h2>
+      <CarouselContainer>
+        <Slider {...settings}>
+          {upcomingMovies.map((movie) => (
+            <MovieCard key={movie._id}>
+              <MovieImage src={movie.imageUrl} alt={movie.name} />
+              <MovieOverlay>
+                <MovieName>{movie.name}</MovieName>
+                <BookButton>BOOK TICKETS</BookButton>
+              </MovieOverlay>
+            </MovieCard>
+          ))}
+        </Slider>
+      </CarouselContainer>
+
+      <Content>
+        <Sidebar>
+          <h3>GENRES</h3>
+          <div>Drama</div>
+          <div>Thriller</div>
+          <div>Romance</div>
+          <div>Mystery</div>
+        </Sidebar>
+
+        <MainContent>
+          <SearchBar type="text" placeholder="Search movie or theatre" />
+
+          <h2>NOW PLAYING MOVIES</h2>
+          <MovieGrid1>
+            {nowPlayingMovies.map((movie) => (
+              <MovieCard1 key={movie._id}>
+                <MovieImage1 src={movie.imageUrl} alt={movie.name} />
+                <MovieName1>{movie.name}</MovieName1>
+                <BookButton1>BOOK TICKETS</BookButton1>
+              </MovieCard1>
+            ))}
+          </MovieGrid1>
+        </MainContent>
+      </Content>
+    </DashboardContainer>
+  );
 };
 
 export default Dashboard;
