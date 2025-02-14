@@ -212,6 +212,10 @@ const Dashboard = () => {
     navigate("/login");
   };
 
+  const handleBookTickets = (movie) => {
+    navigate("/moviebooking", { state: { movieName: movie.name, username } });
+  };
+
   const settings = {
     dots: true,
     infinite: true,
@@ -245,7 +249,7 @@ const Dashboard = () => {
               <MovieImage src={movie.imageUrl} alt={movie.name} />
               <MovieOverlay>
                 <MovieName>{movie.name}</MovieName>
-                <BookButton>BOOK TICKETS</BookButton>
+                <BookButton1 onClick={() => handleBookTickets(movie)}>BOOK TICKETS</BookButton1>
               </MovieOverlay>
             </MovieCard>
           ))}
@@ -270,10 +274,23 @@ const Dashboard = () => {
               <MovieCard1 key={movie._id}>
                 <MovieImage1 src={movie.imageUrl} alt={movie.name} />
                 <MovieName1>{movie.name}</MovieName1>
+                <BookButton1 onClick={() => handleBookTickets(movie)}>BOOK TICKETS</BookButton1>
+              </MovieCard1>
+            ))} 
+          </MovieGrid1>
+
+          <h2>UPCOMING MOVIES</h2>
+          <MovieGrid1>
+            {upcomingMovies.map((movie) => (
+              <MovieCard1 key={movie._id}>
+                <MovieImage1 src={movie.imageUrl} alt={movie.name} />
+                <MovieName1>{movie.name}</MovieName1>
                 <BookButton1>BOOK TICKETS</BookButton1>
               </MovieCard1>
             ))}
           </MovieGrid1>
+
+
         </MainContent>
       </Content>
     </DashboardContainer>
