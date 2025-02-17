@@ -6,6 +6,10 @@ const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const nodemailer = require("nodemailer");
 
+const adminRoutes = require("./routes/admin"); 
+const Theater = require("./models/Theater");
+
+
 const app = express();
 app.use(cors());
 app.use(express.json());
@@ -179,14 +183,162 @@ app.post("/api/auth/admin/login", async (req, res) => {
 
 // ✅ Movie Schema
 const MovieSchema = new mongoose.Schema({
-    name: { type: String, required: true },
-    imageUrl: { type: String, required: true },
-    genres: { type: [String], required: true },
-    status: { type: String, enum: ["upcoming", "now playing"], required: true },
-    availableSeats: [{ row: String, seatNumber: Number, booked: Boolean }] // ✅ Add this
+    name: String,
+    imageUrl: String,
+    genres: [String],
+    status: { type: String, enum: ["upcoming", "now playing"] },
+  });
+  const Movie = mongoose.model("Movie", MovieSchema);
+  
+  // ✅ Theater Schema
+//   const TheaterSchema = new mongoose.Schema({
+//     name: String,
+//     movieId: mongoose.Schema.Types.ObjectId,
+//     location: String,
+//   });
+ // const Theater = mongoose.model("Theater", TheaterSchema);
+  
+  // ✅ Showtimes Schema
+  const ShowTimeSchema = new mongoose.Schema({
+    theaterId: mongoose.Schema.Types.ObjectId,
+    movieId: mongoose.Schema.Types.ObjectId,
+    date: String,
+    times: [String],
+  });
+  const ShowTime = mongoose.model("ShowTime", ShowTimeSchema);
+  
+  // ✅ Seat Schema
+  const SeatSchema = new mongoose.Schema({
+    theaterId: mongoose.Schema.Types.ObjectId,
+    movieId: mongoose.Schema.Types.ObjectId,
+    date: String,
+    time: String,
+    row: String,
+    seatNumber: Number,
+    booked: { type: Boolean, default: false },
+  });
+  const Seat = mongoose.model("Seat", SeatSchema);
+  
+  // ✅ Get Movies
+  app.get("/api/movies", async (req, res) => {
+    try {
+      const movies = await Movie.find();
+      res.json(movies);
+    } catch (error) {
+      res.status(500).json({ message: "Error fetching movies" });
+    }
+  });
+  
+  // ✅ Get Theaters for a Movie
+  app.get("/api/theaters", async (req, res) => {
+    const { movieId } = req.query;
+console.log('💀');
+    if (!movieId) {
+        return res.status(400).json({ error: "Movie ID is required" });
+    }
+
+    try {
+        const all_theaters = await Theater.find();
+        function myCondition(obj) {
+            let movieIds = obj.movies.map(movie => movie.movieId.toString());
+            console.log(movieIds);
+            if (movieIds.includes(movieId)) {
+                return true;
+            }
+            return false;
+        }
+        const theaters = all_theaters.filter(myCondition);
+        // const theaters = await Theater.find({ "movies.movieId": movieId });
+        res.json(theaters);
+    } catch (error) {
+        console.error("❌ Error fetching theaters:", error);
+        res.status(500).json({ error: "Internal server error" });
+    }
+  });
+  
+  // ✅ Get Dates for a Theater
+  app.get("/api/dates", async (req, res) => {
+    try {
+      const { theaterId } = req.query;
+      const dates = await ShowTime.find({ theaterId }).distinct("date");
+      res.json(dates);
+    } catch (error) {
+      res.status(500).json({ message: "Error fetching dates" });
+    }
+  });
+  
+  // ✅ Get Timings for a Date
+  app.get("/api/timings", async (req, res) => {
+    try {
+      const { theaterId, date } = req.query;
+      const show = await ShowTime.findOne({ theaterId, date });
+      res.json(show ? show.times : []);
+    } catch (error) {
+      res.status(500).json({ message: "Error fetching timings" });
+    }
+  });
+  
+  // ✅ Book Ticket
+app.post("/api/book-ticket", async (req, res) => {
+    try {
+        const { userId, movieId, theaterId, date, time, seats } = req.body;
+
+        // Check seat availability
+        const unavailableSeats = await Seat.find({
+            theaterId,
+            movieId,
+            date,
+            time,
+            row: { $in: seats.map(s => s.row) },
+            seatNumber: { $in: seats.map(s => s.number) },
+            booked: true,
+        });
+
+        if (unavailableSeats.length > 0) {
+            return res.status(400).json({ message: "Some seats are already booked!" });
+        }
+
+        // Mark seats as booked
+        await Seat.updateMany(
+            {
+                theaterId,
+                movieId,
+                date,
+                time,
+                row: { $in: seats.map(s => s.row) },
+                seatNumber: { $in: seats.map(s => s.number) },
+            },
+            { $set: { booked: true } }
+        );
+
+        // Save ticket in the database
+        const newTicket = new Ticket({
+            userId,
+            movieId,
+            seats,
+            bookingDate: new Date(),
+        });
+
+        await newTicket.save();
+        console.log("✅ Ticket saved successfully:", newTicket);
+
+        res.status(201).json({ success: true, message: "Ticket booked successfully!", ticket: newTicket });
+    } catch (error) {
+        console.error("❌ Error booking ticket:", error);
+        res.status(500).json({ message: "Booking failed!" });
+    }
 });
 
-const Movie = mongoose.model("Movie", MovieSchema);
+// ✅ Movie Schema
+// const MovieSchema = new mongoose.Schema({
+//     name: { type: String, required: true },
+//     imageUrl: { type: String, required: true },
+//     genres: { type: [String], required: true },
+//     status: { type: String, enum: ["upcoming", "now playing"], required: true },
+//     availableSeats: [{ row: String, seatNumber: Number, booked: Boolean }] // ✅ Add this
+// });
+
+//const Movie = mongoose.model("Movie", MovieSchema);
 
 // ✅ Add Movie (Admin Only)
 app.post("/api/movies", isAdmin, async (req, res) => {
@@ -244,81 +396,6 @@ const ticketSchema = new mongoose.Schema({
 });
 const Ticket = mongoose.model("Ticket", ticketSchema);
 
-
-// ✅ Book Ticket Route (Fixes `userId` and `movieId` Error)
-
-app.post("/api/book-ticket", async (req, res) => {
-    try {
-        console.log("Incoming Booking Request:", req.body); // Debugging log
-
-        let { userId, movieId, seats } = req.body;
-
-        // ✅ Validate userId and movieId
-        if (!mongoose.Types.ObjectId.isValid(userId) || !mongoose.Types.ObjectId.isValid(movieId)) {
-            return res.status(400).json({ message: "Invalid User ID or Movie ID!" });
-        }
-        userId = new mongoose.Types.ObjectId(userId);
-        movieId = new mongoose.Types.ObjectId(movieId);
-
-        // ✅ Fetch latest movie data
-        const movieData = await Movie.findById(movieId);
-        if (!movieData) return res.status(404).json({ message: "Movie not found!" });
-
-        // ✅ Check seat availability
-        let unavailableSeats = [];
-        seats.forEach((seat) => {
-            const seatExists = movieData.availableSeats.find(
-                (s) => s.row === seat.row && s.seatNumber === seat.number
-            );
-
-            if (!seatExists) {
-                unavailableSeats.push(`${seat.row}${seat.number}`);
-            } else if (seatExists.booked === true) {
-                unavailableSeats.push(`${seat.row}${seat.number}`);
-            }
-        });
-
-        if (unavailableSeats.length > 0) {
-            console.error(`❌ These seats are already booked: ${unavailableSeats.join(", ")}`);
-            return res.status(400).json({ message: `Seats already booked: ${unavailableSeats.join(", ")}` });
-        }
-
-        // ✅ Update only booked seats in MongoDB
-        for (let seat of seats) {
-            await Movie.updateOne(
-                { _id: movieId },
-                { 
-                  $set: { "availableSeats.$[elem].booked": true } 
-                },
-                { 
-                  arrayFilters: [{ "elem.row": { $in: seats.map(s => s.row) }, "elem.seatNumber": { $in: seats.map(s => s.number) }, "elem.booked": false }]
-                }
-              );
-              
-              
-            
-        }
-        
-        // ✅ Save ticket in the database
-        const newTicket = new Ticket({
-            userId,
-            movieId,
-            seats,
-            bookingDate: new Date(),
-        });
-
-        await newTicket.save();
-        console.log("✅ Ticket saved successfully:", newTicket);
-
-        res.status(201).json({ success: true, message: "Ticket booked successfully!", ticket: newTicket });
-    } catch (error) {
-        console.error("❌ Error booking ticket:", error);
-        res.status(500).json({ message: "Server error! Booking failed." });
-    }
-});
-
-
-
 // ✅ Get All Tickets Route
 app.get("/api/tickets", async (req, res) => {
     try {
@@ -335,13 +412,51 @@ app.get("/api/movies/:id/booked-seats", async (req, res) => {
         const movie = await Movie.findById(req.params.id);
         if (!movie) return res.status(404).json({ message: "Movie not found" });
 
-        const bookedSeats = movie.availableSeats.filter((s) => s.booked);
+        const bookedSeats = movie.availableSeats ? movie.availableSeats.filter((s) => s.booked) : [];
         res.json(bookedSeats);
     } catch (error) {
         console.error("Error fetching booked seats:", error);
         res.status(500).json({ message: "Server error" });
     }
 });
+
+// ✅ Get Movie, Date, and Time for a Theater
+app.get("/api/theater-details", async (req, res) => {
+  const { theaterId } = req.query;
+
+  if (!theaterId) {
+    return res.status(400).json({ error: "Theater ID is required" });
+  }
+
+  try {
+    const theater = await Theater.findById(theaterId).populate("movies.movieId");
+    if (!theater) {
+      return res.status(404).json({ error: "Theater not found" });
+    }
+
+    // Extract movie details, dates, and timings
+    const details = theater.movies.map((movie) => ({
+      movieId: movie.movieId._id,
+      movieName: movie.movieId.name, // Populated movie name
+      date: movie.date,
+      time: movie.time,
+    }));
+
+    res.json(details);
+  } catch (error) {
+    console.error("Error fetching theater details:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// ✅ Register Routes
+app.use("/api/admin", adminRoutes);  // ✅ This registers admin routes correctly
+
+mongoose.connect(process.env.MONGO_URI, {
+    useNewUrlParser: true,
+    useUnifiedTopology: true,
+}).then(() => console.log("✅ MongoDB Connected"))
+  .catch(err => console.log("❌ MongoDB Connection Error:", err));
 
 // ✅ Start Server
 const PORT = process.env.PORT || 5000;

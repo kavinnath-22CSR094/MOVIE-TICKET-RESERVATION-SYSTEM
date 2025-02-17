@@ -6,6 +6,7 @@ import AdminLogin from "./components/AdminLogin";
 import Dashboard from "./components/Dashboard";
 import AdminPanel from "./components/AdminPanel";
 import MovieBooking from "./components/MovieBooking";   
+import TheaterSelection from "./components/TheaterSelection";
 
 function App() {
     return (
@@ -17,6 +18,7 @@ function App() {
                 <Route path="/dashboard" element={<Dashboard />} />
                 <Route path="/admin" element={<AdminPanel />} />
                 <Route path="/moviebooking" element={<MovieBooking />} />
+                <Route path="/theaterselection" element={<TheaterSelection />} />   
             </Routes>
         </Router>
     );

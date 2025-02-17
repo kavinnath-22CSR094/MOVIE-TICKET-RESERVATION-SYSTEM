@@ -213,7 +213,7 @@ const Dashboard = () => {
   };
 
   const handleBookTickets = (movie) => {
-    navigate("/moviebooking", { state: { movieName: movie.name, username } });
+    navigate("/theaterselection", { state: { movieId: movie._id, movieName:movie.name, username } });
   };
 
   const settings = {
